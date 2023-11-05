@@ -28,10 +28,12 @@ public class Client extends javax.swing.JFrame {
     
    Socket socket;
    DataOutputStream out;
+   ObjectOutputStream obj;
     public Client() throws IOException {
         initComponents();
-        socket = new Socket();
+        socket = new Socket("localhost",8080);
         out =  new DataOutputStream(socket.getOutputStream()) ;
+        obj  = new ObjectOutputStream(out);
     }
 
     /**
@@ -157,7 +159,7 @@ public class Client extends javax.swing.JFrame {
                 Requete req = new Requete(Requete.DES3, des);
                 
                 
-                ObjectOutputStream obj  = new ObjectOutputStream(out);
+           
                 
                 obj.writeObject(req);
                 

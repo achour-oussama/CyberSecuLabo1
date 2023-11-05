@@ -8,6 +8,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.logging.Level;
@@ -24,47 +25,46 @@ import java.util.logging.Logger;
  */
 public class ClientHandler implements Runnable {
 
-    private final Socket clientSocket;
+    private Socket clientSocket;
+    private ServerSocket serverSocket;
     DataInputStream in;
     DataOutputStream out;
     ObjectInputStream obj;
-    mainWindows mainFrame;
-    
+    server mainFrame;
 
     public ClientHandler(Socket clientSocket) {
         this.clientSocket = clientSocket;
     }
 
-    ClientHandler(Socket clientSocket, mainWindows aThis) {
-          this.clientSocket = clientSocket;
-          mainFrame = aThis;
+    ClientHandler(ServerSocket serverS, server aThis) {
+        this.serverSocket = serverS;
+        mainFrame = aThis;
     }
 
     @Override
     public void run() {
+
         try {
+            clientSocket = serverSocket.accept();
             in = new DataInputStream(clientSocket.getInputStream());
             out = new DataOutputStream(clientSocket.getOutputStream());
             obj = new ObjectInputStream(in);
-            
-            Requete req  = (Requete) obj.readObject();
-            
-            switch(req.getCode())
-            {
-                case Requete.DES3 : {
-                           Des3 des3 = (Des3) req.getRequete();
-                           
-                           String message  = CryptoUtils.decrypt(des3.getChargeutile(), CryptoUtils.KEYDES3 , CryptoUtils.ALGORITHM);
-                           
-                           mainFrame.updateWindows(message, new String(des3.getChargeutile(), StandardCharsets.UTF_8) , CryptoUtils.KEYDES3);
-                           
-                           
+
+            while (true) {
+                Requete req = (Requete) obj.readObject();
+
+                switch (req.getCode()) {
+                    case Requete.DES3: {
+                        Des3 des3 = (Des3) req.getRequete();
+
+                        String message = CryptoUtils.decrypt(des3.getChargeutile(), CryptoUtils.KEYDES3, CryptoUtils.ALGORITHM);
+
+                        mainFrame.updateWindows(message, new String(des3.getChargeutile(), StandardCharsets.UTF_8), CryptoUtils.KEYDES3);
+
+                    }
                 }
             }
-            
-            
 
-            clientSocket.close();
         } catch (IOException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException ex) {
