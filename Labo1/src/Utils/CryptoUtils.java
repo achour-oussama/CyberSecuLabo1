@@ -17,7 +17,8 @@ import javax.crypto.spec.DESedeKeySpec;
  * @author oussa
  */
 public class CryptoUtils {
-    
+    public static final String ALGORITHM = "DESede/ECB/PKCS5Padding";
+    public static final String KEYDES3 = "0123456789abcdef0123456789abcdef0123456789abcdef";
     
 
     public static byte[] encrypt(String message , String KEY, String ALGORITHM) throws Exception {

@@ -6,12 +6,13 @@
 package Requete;
 
 import java.awt.RenderingHints.Key;
+import java.io.Serializable;
 
 /**
  *
  * @author oussa
  */
-public class Requete {
+public class Requete implements Serializable{
     
      public static final int DES3 = 1;
     

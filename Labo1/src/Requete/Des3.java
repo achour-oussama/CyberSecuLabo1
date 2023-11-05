@@ -5,15 +5,16 @@
  */
 package Requete;
 
+import java.io.Serializable;
+
 /**
  *
  * @author oussa
  */
-public class Des3 implements IRequete{
+public class Des3 implements IRequete, Serializable{
     
     private byte[] message;
-    public static final String ALGORITHM = "DESede/ECB/PKCS5Padding";
-    public static final String KEY = "0123456789abcdef0123456789abcdef0123456789abcdef";
+   
 
     public Des3(byte[] mess) {
         message  = mess;

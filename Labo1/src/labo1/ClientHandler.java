@@ -54,9 +54,9 @@ public class ClientHandler implements Runnable {
                 case Requete.DES3 : {
                            Des3 des3 = (Des3) req.getRequete();
                            
-                           String message  = CryptoUtils.decrypt(des3.getChargeutile(), Des3.KEY , Des3.ALGORITHM);
+                           String message  = CryptoUtils.decrypt(des3.getChargeutile(), CryptoUtils.KEYDES3 , CryptoUtils.ALGORITHM);
                            
-                           mainFrame.updateWindows(message, new String(des3.getChargeutile(), StandardCharsets.UTF_8) , Des3.KEY);
+                           mainFrame.updateWindows(message, new String(des3.getChargeutile(), StandardCharsets.UTF_8) , CryptoUtils.KEYDES3);
                            
                            
                 }
