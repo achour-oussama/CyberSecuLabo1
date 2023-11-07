@@ -5,16 +5,32 @@
  */
 package labo1;
 
+import Requete.AES;
 import Requete.Des3;
+import Requete.DiffieHellMans;
 import Requete.Requete;
 import Utils.CryptoUtils;
+import Utils.RandomCoprimeNumbers;
+import static Utils.RandomCoprimeNumbers.generateCoprimeNumbers;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.math.BigInteger;
 import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.security.Key;
+import java.security.PrivateKey;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import static Utils.CryptoUtils.*;
+import java.security.PublicKey;
+import javax.swing.JOptionPane;
 
 /**
  *
@@ -25,15 +41,24 @@ public class Client extends javax.swing.JFrame {
     /**
      * Creates new form Client
      */
-    
-   Socket socket;
-   DataOutputStream out;
-   ObjectOutputStream obj;
+    Socket socket;
+    DataOutputStream out;
+    DataInputStream in;
+    ObjectOutputStream obj;
+    ObjectInputStream objIn;
+    int A;
+
+    SecretKey aesKey = null;
+
     public Client() throws IOException {
         initComponents();
-        socket = new Socket("localhost",8080);
-        out =  new DataOutputStream(socket.getOutputStream()) ;
-        obj  = new ObjectOutputStream(out);
+        socket = new Socket("localhost", 8080);
+        out = new DataOutputStream(socket.getOutputStream());
+        in = new DataInputStream(socket.getInputStream());
+        obj = new ObjectOutputStream(out);
+        objIn = new ObjectInputStream(in);
+        A = new Random().nextInt();
+
     }
 
     /**
@@ -46,7 +71,7 @@ public class Client extends javax.swing.JFrame {
     private void initComponents() {
 
         buttonGroup1 = new javax.swing.ButtonGroup();
-        jRadioButton1 = new javax.swing.JRadioButton();
+        AES = new javax.swing.JRadioButton();
         DES3 = new javax.swing.JRadioButton();
         jLabel2 = new javax.swing.JLabel();
         jRadioButton3 = new javax.swing.JRadioButton();
@@ -57,8 +82,13 @@ public class Client extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
-        buttonGroup1.add(jRadioButton1);
-        jRadioButton1.setText("jRadioButton1");
+        buttonGroup1.add(AES);
+        AES.setText("AES");
+        AES.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                AESActionPerformed(evt);
+            }
+        });
 
         buttonGroup1.add(DES3);
         DES3.setText("DES3");
@@ -90,11 +120,11 @@ public class Client extends javax.swing.JFrame {
                 .addGap(57, 57, 57)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addComponent(jRadioButton4)
-                    .addComponent(jRadioButton3)
                     .addComponent(jLabel2)
                     .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                         .addComponent(DES3)
-                        .addComponent(jRadioButton1)))
+                        .addComponent(AES)
+                        .addComponent(jRadioButton3)))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 134, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 268, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -133,7 +163,7 @@ public class Client extends javax.swing.JFrame {
                         .addGap(4, 4, 4))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jRadioButton1)
+                        .addComponent(AES)
                         .addGap(18, 18, 18)))
                 .addComponent(jRadioButton3)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -145,34 +175,91 @@ public class Client extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-         
-       try {
-          
-           String texte  = jTextField1.getText();
-           
-          
-           
-           if(DES3.isSelected())
-           {
-                byte[] encrypted = CryptoUtils.encrypt(texte,  CryptoUtils.KEYDES3 , CryptoUtils.ALGORITHM);
+
+        try {
+
+            String texte = jTextField1.getText();
+
+            if (DES3.isSelected()) {
+                byte[] encrypted = CryptoUtils.encrypt(texte, CryptoUtils.KEYDES3, CryptoUtils.ALGORITHM);
                 Des3 des = new Des3(encrypted);
                 Requete req = new Requete(Requete.DES3, des);
-                
-                
-           
-                
+
                 obj.writeObject(req);
-                
-           }
-           
-           
-       } catch (IOException ex) {
-           Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
-       } catch (Exception ex) {
-           Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
-       }
-        
+
+            } else {
+                if (AES.isSelected()) {
+                    if (aesKey == null) {
+                        int[] nombre = RandomCoprimeNumbers.generateCoprimeNumbers();
+
+                        int Alpha = RandomCoprimeNumbers.generateAlphaBeta(nombre, A);
+
+                        String client = "client";
+
+                        PublicKey pk = getPublicKeyFromKeystore("C:\\Users\\oussa\\Desktop\\CyberSecuLabo1\\key\\client.jce", "oussama", "client", "client".toCharArray());
+                        PrivateKey prk = getPrivateKeyFromKeystore("C:\\Users\\oussa\\Desktop\\CyberSecuLabo1\\key\\client.jce", "oussama", "client", "client".toCharArray());
+
+                        byte[] crypt = encryptWithPrivateKey(client.getBytes(), prk);
+                        byte[] sign = getCertificateSignature("C:\\Users\\oussa\\Desktop\\CyberSecuLabo1\\key\\client.jce", "oussama", "client");
+
+                        DiffieHellMans dms = new DiffieHellMans(sign, crypt, pk.getEncoded(), nombre, Alpha);
+
+                        Requete req = new Requete(Requete.DIFFIE, dms);
+
+                        obj.writeObject(req);
+
+                        req = (Requete) objIn.readObject();
+
+                        dms = (DiffieHellMans) req.getRequete();
+
+                        sign = dms.getSign();
+
+                        if (verifySignatures(sign, getCertificateSignature("C:\\Users\\oussa\\Desktop\\CyberSecuLabo1\\key\\client.jce", "oussama", "server"))) {
+
+                            byte[] byteServerKey = dms.getPkb();
+
+                            String message = decryptWithPublicKey(dms.getChargeutile(), byteServerKey);
+
+                            if (message.equals("server")) {
+                                BigInteger beta = dms.getAlphaBeta();
+
+                                BigInteger floatKey = CryptoUtils.GenerateKey(Alpha, nombre, beta);
+                                ByteBuffer buffer = ByteBuffer.allocate(Float.BYTES);
+                                buffer.putFloat(floatKey);
+
+                                aesKey = CryptoUtils.generateAESKey(buffer.array());
+                                
+                                AES aes  = new AES(encryptWithAES(jTextField1.getText() , aesKey));
+                                
+                                req = new Requete(Requete.AES, aes);
+                                
+                                
+                                obj.writeObject(req);
+
+                             
+                            }else{
+                                JOptionPane.showMessageDialog(null, "Receveur incorect ");
+                            }
+
+                        } else {
+                            JOptionPane.showMessageDialog(null, "Signature incorect ");
+                        }
+
+                    }
+                }
+            }
+
+        } catch (IOException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
     }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void AESActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_AESActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_AESActionPerformed
 
     /**
      * @param args the command line arguments
@@ -214,12 +301,12 @@ public class Client extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JRadioButton AES;
     private javax.swing.JRadioButton DES3;
     private javax.swing.ButtonGroup buttonGroup1;
     private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
-    private javax.swing.JRadioButton jRadioButton1;
     private javax.swing.JRadioButton jRadioButton3;
     private javax.swing.JRadioButton jRadioButton4;
     private javax.swing.JTextField jTextField1;

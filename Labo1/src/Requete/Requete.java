@@ -15,7 +15,12 @@ import java.io.Serializable;
 public class Requete implements Serializable{
     
      public static final int DES3 = 1;
+     
+     public static final int DIFFIE = 2;
     
+     public static final int AES = 3;
+     
+     
      private int code;
      IRequete requete;
 
