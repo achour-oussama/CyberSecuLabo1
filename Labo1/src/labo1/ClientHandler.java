@@ -18,8 +18,12 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.security.Key;
+import java.security.KeyFactory;
+import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -47,7 +51,9 @@ public class ClientHandler implements Runnable {
     server mainFrame;
     private int B;
     private SecretKey aesKey;
-
+    
+    String filePathLaptop = "C:\\Users\\oussa\\OneDrive\\Bureau\\CyberSecuLabo1\\key\\";
+    String filePathComputer = "C:\\Users\\oussa\\Desktop\\CyberSecuLabo1\\key\\";
     public ClientHandler(Socket clientSocket) {
         this.clientSocket = clientSocket;
     }
@@ -60,7 +66,12 @@ public class ClientHandler implements Runnable {
 
     @Override
     public void run() {
-
+        boolean laptop = true;
+        String filepath;
+        if(laptop)
+            filepath = filePathLaptop;
+        else filepath = filePathComputer;
+        
         try {
             clientSocket = serverSocket.accept();
             in = new DataInputStream(clientSocket.getInputStream());
@@ -78,32 +89,50 @@ public class ClientHandler implements Runnable {
                         String message = decrypt(des3.getChargeutile(), KEYDES3, ALGORITHM);
 
                         mainFrame.updateWindows(message, new String(des3.getChargeutile(), StandardCharsets.UTF_8), KEYDES3);
+                        
+                        req = null;
 
                     }
 
                     case Requete.DIFFIE: {
                         DiffieHellMans dmf = (DiffieHellMans) req.getRequete();
 
-                        if (verifySignatures(dmf.getSign(), getCertificateSignature("C:\\Users\\oussa\\Desktop\\CyberSecuLabo1\\key\\server.jce", "oussama", "client"))) {
-                            String message = decryptWithPublicKey(dmf.getChargeutile(), dmf.getPkb());
+                        if (verifySignatures(dmf.getSign(), getCertificateSignature( filepath + "server.jce", "oussama", "client"))) {
+                            String message = decryptWithPublicKey(dmf.getChargeutile(), dmf.getFilePublicKey());
 
                             if (message.equals("client")) {
-                                byte[] sign = getCertificateSignature("C:\\Users\\oussa\\Desktop\\CyberSecuLabo1\\key\\server.jce", "oussama", "server");
-                                PrivateKey prk = getPrivateKeyFromKeystore("C:\\Users\\oussa\\Desktop\\CyberSecuLabo1\\key\\server.jce", "oussama", "server", "server".toCharArray());
-                                PublicKey pkb = getPublicKeyFromKeystore("C:\\Users\\oussa\\Desktop\\CyberSecuLabo1\\key\\server.jce", "oussama", "server", "server".toCharArray());
+                                byte[] sign = getCertificateSignature( filepath + "server.jce", "oussama", "server");
+                                PrivateKey prk = getPrivateKeyFromKeystore( filepath + "server.jce", "oussama", "server", "server".toCharArray());
+                                PublicKey pkb = getPublicKeyFromKeystore( filepath + "server.jce", "oussama", "server", "server".toCharArray());
                                 byte[] crypt = encryptWithPrivateKey("server".getBytes(), prk);
 
-                                byte[] keyAByte = dmf.getAgrement();
-                                KeyAgreement KeyA  = 
-                                KeyAgreement keyB = generateKeyAgreement();
+                                // Bob reçoit la clé publique d'Alice et la convertit en objet Key
+                                KeyFactory bobKeyFac = KeyFactory.getInstance("DH");
+                                X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(dmf.getAliceBobKey());
+                                Key alicePubKey = bobKeyFac.generatePublic(x509KeySpec);
+
+                                KeyPair bobKeyPair = generateDHKeyPair();
+                                
+                                // Bob fait un accord de clé avec Alice
+                                KeyAgreement bobKeyAgree = KeyAgreement.getInstance("DH");
+                                bobKeyAgree.init(bobKeyPair.getPrivate());
+                                bobKeyAgree.doPhase(alicePubKey, true);
+
+                                // Bob génère le secret partagé avec Alice
+                                byte[] bobSharedSecret = bobKeyAgree.generateSecret();
+
+                                // Bob dérive une clé AES à partir du secret partagé
+                                aesKey =  generateAESKey(bobSharedSecret);
+                                
                                 
 
-                                aesKey = deriveSharedSecret(keyA, pkb);
 
-                                DiffieHellMans dms = new DiffieHellMans(sign, crypt, pkb.getEncoded(), keyB);
+                                DiffieHellMans dms = new DiffieHellMans(sign, crypt, pkb.getEncoded(), bobKeyPair.getPublic().getEncoded());
                                 req = new Requete(Requete.AES, dms);
 
                                 objO.writeObject(req);
+                                
+                                req = null;
 
                             } else {
                                 JOptionPane.showMessageDialog(null, "Mauvaise client ");
@@ -114,7 +143,7 @@ public class ClientHandler implements Runnable {
                         }
 
                     }
-
+                    break;
                     case Requete.AES: {
                         AES aes = (AES) req.getRequete();
 
@@ -123,6 +152,7 @@ public class ClientHandler implements Runnable {
                         byte[] message = decryptWithAES(mess, aesKey);
 
                         mainFrame.updateWindows(new String(message, StandardCharsets.UTF_8), new String(mess, StandardCharsets.UTF_8), new String(aesKey.getEncoded(), StandardCharsets.UTF_8));
+                         req = null;
                     }
                 }
             }

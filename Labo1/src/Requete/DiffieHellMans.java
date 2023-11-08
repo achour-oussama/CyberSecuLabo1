@@ -14,71 +14,88 @@ import javax.crypto.KeyAgreement;
  *
  * @author oussa
  */
-public class DiffieHellMans implements Serializable , IRequete{
-    BigInteger[] nq ;
-    
+public class DiffieHellMans implements Serializable, IRequete {
+
+    BigInteger[] nq;
+
     byte[] sign;
     byte[] crypt;
-    byte[] pkb;
-    byte[] dh;
-    BigInteger alphaBeta ;
-    byte[] agrement;
+    byte[] FilePublicKey;
+    byte[] AliceBobKey;
 
-    public DiffieHellMans(byte[] sign, byte[] crypt, byte[] encoded, byte[] dhf, byte[] agrement ) {
-       
-        this.sign = sign;
-        this.crypt = crypt;
-          this.pkb = encoded;
-             this.agrement = agrement;
-           this.dh = dhf;
-     
-       
-    
-     
-      
+    public byte[] getFilePublicKey() {
+        return FilePublicKey;
     }
 
-    public  byte[] getAgrement() {
+    public void setFilePublicKey(byte[] FilePublicKey) {
+        this.FilePublicKey = FilePublicKey;
+    }
+
+    public byte[] getAliceBobKey() {
+        return AliceBobKey;
+    }
+
+    public void setAliceBobKey(byte[] AliceBobKey) {
+        this.AliceBobKey = AliceBobKey;
+    }
+    byte[] dh;
+    BigInteger alphaBeta;
+    byte[] agrement;
+
+    public DiffieHellMans(byte[] sign, byte[] crypt, byte[] encoded, byte[] dhf, byte[] agrement) {
+
+        this.sign = sign;
+        this.crypt = crypt;
+        this.FilePublicKey = encoded;
+        this.agrement = agrement;
+        this.dh = dhf;
+
+    }
+
+    public DiffieHellMans(byte[] sign, byte[] crypt, byte[] encoded, byte[] alicePubKeyEnc) {
+        this.sign = sign;
+        this.crypt = crypt;
+        this.FilePublicKey = encoded;
+        this.AliceBobKey = alicePubKeyEnc;
+
+    }
+
+    public byte[] getAgrement() {
         return agrement;
     }
 
-    public void setAgrement( byte[] agrement) {
+    public void setAgrement(byte[] agrement) {
         this.agrement = agrement;
     }
-    
-    
+
     public byte[] getSign() {
         return sign;
     }
 
     public byte[] getPkb() {
-        return pkb;
+        return FilePublicKey;
     }
-    
-    
 
-    public DiffieHellMans(byte[] sign, byte[] crypt, byte[] pkb, BigInteger[] number ,BigInteger alphaBeta) {
+    public DiffieHellMans(byte[] sign, byte[] crypt, byte[] pkb, BigInteger[] number, BigInteger alphaBeta) {
         this.sign = sign;
         this.crypt = crypt;
-        this.pkb = pkb;
+        this.FilePublicKey = pkb;
         this.nq = number;
         this.alphaBeta = alphaBeta;
     }
-    
-     public DiffieHellMans(byte[] sign, byte[] crypt, byte[] pkb ,BigInteger alphaBeta) {
+
+    public DiffieHellMans(byte[] sign, byte[] crypt, byte[] pkb, BigInteger alphaBeta) {
         this.sign = sign;
         this.crypt = crypt;
-        this.pkb = pkb;
+        this.FilePublicKey = pkb;
         this.alphaBeta = alphaBeta;
     }
 
     public DiffieHellMans(BigInteger[] nq, byte[] pkb, BigInteger alphaBeta) {
         this.nq = nq;
-        this.pkb = pkb;
+        this.FilePublicKey = pkb;
         this.alphaBeta = alphaBeta;
     }
-    
-    
 
     public BigInteger[] getNq() {
         return nq;
@@ -93,8 +110,6 @@ public class DiffieHellMans implements Serializable , IRequete{
         this.alphaBeta = alphaBeta;
     }
 
-   
-
     public BigInteger getAlphaBeta() {
         return alphaBeta;
     }
@@ -102,17 +117,10 @@ public class DiffieHellMans implements Serializable , IRequete{
     public void setAlphaBeta(BigInteger alphaBeta) {
         this.alphaBeta = alphaBeta;
     }
-    
-    
-
 
     @Override
     public byte[] getChargeutile() {
         return crypt;
     }
-    
-    
-    
-    
-    
+
 }

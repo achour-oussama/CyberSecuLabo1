@@ -14,6 +14,7 @@ import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -74,15 +75,6 @@ public class CryptoUtils {
         return (int) Math.pow(alphaBeta1, AB) % nq[0];
     }
 
-    public static SecretKey generateAESKey(byte[] keyBytes) {
-        try {
-            SecretKey secretKey = new SecretKeySpec(keyBytes, "AES");
-            return secretKey;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
 
     public static boolean verifySignature(byte[] signatureBytes, byte[] publicKeyBytes, byte[] dataToVerify) {
         try {
@@ -262,6 +254,54 @@ public class CryptoUtils {
 
         // Création d'un objet SecretKey avec la clé secrète
         return new SecretKeySpec(sharedSecret, "AES");
+    }
+    
+    // Générer une paire de clés Diffie-Hellman
+    public static KeyPair generateDHKeyPair() throws Exception {
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("DH");
+        kpg.initialize(2048); // taille du modulo p
+        return kpg.generateKeyPair();
+    }
+
+    // Générer une clé AES à partir d'un secret partagé Diffie-Hellman
+    public static SecretKey generateAESKey(byte[] sharedSecret) throws Exception {
+        // Utiliser SHA-256 pour dériver une clé de 128 bits à partir du secret partagé
+        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+        byte[] keyBytes = new byte[16];
+        sha256.update(sharedSecret, 0, sharedSecret.length);
+        System.arraycopy(sha256.digest(), 0, keyBytes, 0, keyBytes.length);
+        // Créer une clé AES à partir des octets dérivés
+        SecretKey key = new SecretKeySpec(keyBytes, "AES");
+        return key;
+    }
+
+    // Chiffrer un message avec une clé AES
+    public static byte[] encryptAES(Key key, byte[] data) throws Exception {
+        Cipher cipher = Cipher.getInstance("AES");
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        return cipher.doFinal(data);
+    }
+
+    // Déchiffrer un message avec une clé AES
+    public static byte[] decryptAES(Key key, byte[] data) throws Exception {
+        Cipher cipher = Cipher.getInstance("AES");
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        return cipher.doFinal(data);
+    }
+
+    // Convertir un tableau d'octets en une chaîne hexadécimale
+    public static String toHex(byte[] data) {
+        BigInteger bi = new BigInteger(1, data);
+        return String.format("%0" + (data.length << 1) + "X", bi);
+    }
+
+    // Convertir une chaîne hexadécimale en un tableau d'octets
+    public static byte[] fromHex(String hex) {
+        byte[] data = new byte[hex.length() / 2];
+        for (int i = 0; i < data.length; i++) {
+            data[i] = (byte) Integer.parseInt(hex.substring(2 * i, 2 * i + 2), 16);
+        }
+        return data;
     }
     
    

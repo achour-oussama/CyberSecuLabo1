@@ -29,7 +29,11 @@ import java.util.logging.Logger;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import static Utils.CryptoUtils.*;
+import java.security.KeyFactory;
+import java.security.KeyPair;
 import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
+import javax.crypto.KeyAgreement;
 import javax.swing.JOptionPane;
 
 /**
@@ -47,6 +51,9 @@ public class Client extends javax.swing.JFrame {
     ObjectOutputStream obj;
     ObjectInputStream objIn;
     int A;
+    
+    String filePathLaptop = "C:\\Users\\oussa\\OneDrive\\Bureau\\CyberSecuLabo1\\key\\";
+    String filePathComputer = "C:\\Users\\oussa\\Desktop\\CyberSecuLabo1\\key\\";
 
     SecretKey aesKey = null;
 
@@ -176,6 +183,11 @@ public class Client extends javax.swing.JFrame {
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
 
+        boolean laptop = true;
+        String filepath;
+        if(laptop)
+            filepath = filePathLaptop;
+        else filepath = filePathComputer;
         try {
 
             String texte = jTextField1.getText();
@@ -190,19 +202,18 @@ public class Client extends javax.swing.JFrame {
             } else {
                 if (AES.isSelected()) {
                     if (aesKey == null) {
-                        int[] nombre = RandomCoprimeNumbers.generateCoprimeNumbers();
 
-                        int Alpha = RandomCoprimeNumbers.generateAlphaBeta(nombre, A);
-
+                        KeyPair aliceKeyPair = generateDHKeyPair();
+                        byte[] alicePubKeyEnc = aliceKeyPair.getPublic().getEncoded();
                         String client = "client";
 
-                        PublicKey pk = getPublicKeyFromKeystore("C:\\Users\\oussa\\Desktop\\CyberSecuLabo1\\key\\client.jce", "oussama", "client", "client".toCharArray());
-                        PrivateKey prk = getPrivateKeyFromKeystore("C:\\Users\\oussa\\Desktop\\CyberSecuLabo1\\key\\client.jce", "oussama", "client", "client".toCharArray());
+                        PublicKey pk = getPublicKeyFromKeystore(filepath + "client.jce", "oussama", "client", "client".toCharArray());
+                        PrivateKey prk = getPrivateKeyFromKeystore(filepath + "client.jce", "oussama", "client", "client".toCharArray());
 
                         byte[] crypt = encryptWithPrivateKey(client.getBytes(), prk);
-                        byte[] sign = getCertificateSignature("C:\\Users\\oussa\\Desktop\\CyberSecuLabo1\\key\\client.jce", "oussama", "client");
+                        byte[] sign = getCertificateSignature(filepath + "client.jce", "oussama", "client");
 
-                        DiffieHellMans dms = new DiffieHellMans(sign, crypt, pk.getEncoded(), nombre, Alpha);
+                        DiffieHellMans dms = new DiffieHellMans(sign, crypt, pk.getEncoded(), alicePubKeyEnc);
 
                         Requete req = new Requete(Requete.DIFFIE, dms);
 
@@ -214,30 +225,37 @@ public class Client extends javax.swing.JFrame {
 
                         sign = dms.getSign();
 
-                        if (verifySignatures(sign, getCertificateSignature("C:\\Users\\oussa\\Desktop\\CyberSecuLabo1\\key\\client.jce", "oussama", "server"))) {
+                        if (verifySignatures(sign, getCertificateSignature(filepath + "client.jce", "oussama", "server"))) {
 
                             byte[] byteServerKey = dms.getPkb();
 
                             String message = decryptWithPublicKey(dms.getChargeutile(), byteServerKey);
 
                             if (message.equals("server")) {
-                                BigInteger beta = dms.getAlphaBeta();
 
-                                BigInteger floatKey = CryptoUtils.GenerateKey(Alpha, nombre, beta);
-                                ByteBuffer buffer = ByteBuffer.allocate(Float.BYTES);
-                                buffer.putFloat(floatKey);
+                                KeyFactory aliceKeyFac = KeyFactory.getInstance("DH");
+                                X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(dms.getAliceBobKey());
+                                Key bobPubKey = aliceKeyFac.generatePublic(x509KeySpec);
 
-                                aesKey = CryptoUtils.generateAESKey(buffer.array());
+                                // Alice fait un accord de clé avec Bob
+                                KeyAgreement aliceKeyAgree = KeyAgreement.getInstance("DH");
+                                aliceKeyAgree.init(aliceKeyPair.getPrivate());
+                                aliceKeyAgree.doPhase(bobPubKey, true);
+
+                                // Alice génère le secret partagé avec Bob
+                                byte[] aliceSharedSecret = aliceKeyAgree.generateSecret();
                                 
-                                AES aes  = new AES(encryptWithAES(jTextField1.getText() , aesKey));
+                                // Alice dérive une clé AES à partir du secret partagé
+                                aesKey = generateAESKey(aliceSharedSecret);
                                 
+
+                                AES aes = new AES(encryptWithAES(jTextField1.getText(), aesKey));
+
                                 req = new Requete(Requete.AES, aes);
-                                
-                                
+
                                 obj.writeObject(req);
 
-                             
-                            }else{
+                            } else {
                                 JOptionPane.showMessageDialog(null, "Receveur incorect ");
                             }
 
