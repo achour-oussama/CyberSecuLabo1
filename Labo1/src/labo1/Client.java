@@ -8,7 +8,12 @@ package labo1;
 import Requete.AES;
 import Requete.Des3;
 import Requete.DiffieHellMans;
+import Requete.HMAC;
+import Requete.HandShake;
 import Requete.Requete;
+import Requete.SHA1;
+import Requete.SHA1withRSA;
+import Requete.certif;
 import Utils.CryptoUtils;
 import Utils.RandomCoprimeNumbers;
 import static Utils.RandomCoprimeNumbers.generateCoprimeNumbers;
@@ -51,11 +56,13 @@ public class Client extends javax.swing.JFrame {
     ObjectOutputStream obj;
     ObjectInputStream objIn;
     int A;
-    
+
     String filePathLaptop = "C:\\Users\\oussa\\OneDrive\\Bureau\\CyberSecuLabo1\\key\\";
     String filePathComputer = "C:\\Users\\oussa\\Desktop\\CyberSecuLabo1\\key\\";
 
     SecretKey aesKey = null;
+
+    PublicKey ServerPublicKey = null;
 
     public Client() throws IOException {
         initComponents();
@@ -81,11 +88,13 @@ public class Client extends javax.swing.JFrame {
         AES = new javax.swing.JRadioButton();
         DES3 = new javax.swing.JRadioButton();
         jLabel2 = new javax.swing.JLabel();
-        jRadioButton3 = new javax.swing.JRadioButton();
-        jRadioButton4 = new javax.swing.JRadioButton();
+        SHA1 = new javax.swing.JRadioButton();
+        HMAC = new javax.swing.JRadioButton();
         jButton1 = new javax.swing.JButton();
         jLabel1 = new javax.swing.JLabel();
         jTextField1 = new javax.swing.JTextField();
+        SHA1withRSA = new javax.swing.JRadioButton();
+        Certificat = new javax.swing.JRadioButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -102,11 +111,11 @@ public class Client extends javax.swing.JFrame {
 
         jLabel2.setText("Choix du cryptage : ");
 
-        buttonGroup1.add(jRadioButton3);
-        jRadioButton3.setText("jRadioButton3");
+        buttonGroup1.add(SHA1);
+        SHA1.setText("SHA-1");
 
-        buttonGroup1.add(jRadioButton4);
-        jRadioButton4.setText("jRadioButton4");
+        buttonGroup1.add(HMAC);
+        HMAC.setText("HMAC-MD5");
 
         jButton1.setText("Envoie");
         jButton1.addActionListener(new java.awt.event.ActionListener() {
@@ -119,30 +128,49 @@ public class Client extends javax.swing.JFrame {
 
         jTextField1.setText("Je mange la glace ");
 
+        buttonGroup1.add(SHA1withRSA);
+        SHA1withRSA.setText("SHA1withRSA");
+        SHA1withRSA.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                SHA1withRSAActionPerformed(evt);
+            }
+        });
+
+        buttonGroup1.add(Certificat);
+        Certificat.setText("certificat");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+            .addGroup(layout.createSequentialGroup()
                 .addGap(57, 57, 57)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(jRadioButton4)
-                    .addComponent(jLabel2)
-                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addComponent(DES3)
-                        .addComponent(AES)
-                        .addComponent(jRadioButton3)))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 134, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 268, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(layout.createSequentialGroup()
-                        .addGap(18, 18, 18)
-                        .addComponent(jLabel1)))
-                .addContainerGap())
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jButton1)
-                .addGap(235, 235, 235))
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel2)
+                            .addComponent(DES3)
+                            .addComponent(AES)
+                            .addComponent(SHA1)
+                            .addComponent(HMAC))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 268, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addGroup(layout.createSequentialGroup()
+                                        .addGap(18, 18, 18)
+                                        .addComponent(jLabel1)))
+                                .addContainerGap())
+                            .addGroup(layout.createSequentialGroup()
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 132, Short.MAX_VALUE)
+                                .addComponent(jButton1)
+                                .addGap(235, 235, 235))))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(Certificat)
+                            .addComponent(SHA1withRSA))
+                        .addGap(0, 0, Short.MAX_VALUE))))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -155,27 +183,25 @@ public class Client extends javax.swing.JFrame {
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                         .addContainerGap()
                         .addComponent(jLabel1)))
+                .addGap(3, 3, 3)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addGap(3, 3, 3)
                         .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(DES3)))
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(44, 44, 44)
+                        .addComponent(jButton1))
                     .addGroup(layout.createSequentialGroup()
-                        .addGap(26, 26, 26)
-                        .addComponent(jButton1)
-                        .addGap(4, 4, 4))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addComponent(DES3)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(AES)
-                        .addGap(18, 18, 18)))
-                .addComponent(jRadioButton3)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jRadioButton4)
-                .addContainerGap(101, Short.MAX_VALUE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(SHA1)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(HMAC)))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(SHA1withRSA)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(Certificat)
+                .addContainerGap(86, Short.MAX_VALUE))
         );
 
         pack();
@@ -185,9 +211,11 @@ public class Client extends javax.swing.JFrame {
 
         boolean laptop = true;
         String filepath;
-        if(laptop)
+        if (laptop) {
             filepath = filePathLaptop;
-        else filepath = filePathComputer;
+        } else {
+            filepath = filePathComputer;
+        }
         try {
 
             String texte = jTextField1.getText();
@@ -244,10 +272,9 @@ public class Client extends javax.swing.JFrame {
 
                                 // Alice génère le secret partagé avec Bob
                                 byte[] aliceSharedSecret = aliceKeyAgree.generateSecret();
-                                
+
                                 // Alice dérive une clé AES à partir du secret partagé
                                 aesKey = generateAESKey(aliceSharedSecret);
-                                
 
                                 AES aes = new AES(encryptWithAES(jTextField1.getText(), aesKey));
 
@@ -264,6 +291,57 @@ public class Client extends javax.swing.JFrame {
                         }
 
                     }
+                } else {
+                    if (SHA1.isSelected()) {
+                        texte = jTextField1.getText();
+
+                        SHA1 sh = new SHA1(texte, hash(texte));
+
+                        Requete req = new Requete(Requete.SHA1, sh);
+
+                        obj.writeObject(req);
+
+                    } else {
+                        if (HMAC.isSelected()) {
+                            texte = jTextField1.getText();
+
+                            HMAC hm = new HMAC(hmac_md5(texte, CryptoUtils.Hkey), crypt_messageHmac(texte, CryptoUtils.Hkey));
+
+                            Requete req = new Requete(Requete.HMAC, hm);
+
+                            obj.writeObject(req);
+                        } else {
+                            if (SHA1withRSA.isSelected()) {
+                                if (ServerPublicKey == null) {
+                                    PublicKey pk = getPublicKeyFromKeystore(filepath + "client.jce", "oussama", "client", "client".toCharArray());
+                                    PrivateKey prk = getPrivateKeyFromKeystore(filepath + "client.jce", "oussama", "client", "client".toCharArray());
+
+                                    byte[] sign = sign_message( jTextField1.getText(), prk);
+                                    byte[] crypt = encryptWithPrivateKey(jTextField1.getText().getBytes(), prk);
+                                    byte[] publicKey = pk.getEncoded();
+                                    
+                                    SHA1withRSA sha = new SHA1withRSA(publicKey , sign , crypt);
+                                    
+                                    Requete req  = new Requete(Requete.SHA1withRSA, sha);
+                                    
+                                    obj.writeObject(obj);
+                                  
+                                }
+
+                            } else if(Certificat.isSelected())
+                            {
+                                  PublicKey pk = getPublicKeyFromKeystore(filepath + "client.jce", "oussama", "client", "client".toCharArray());
+                                  PrivateKey prk = getPrivateKeyFromKeystore(filepath + "client.jce", "oussama", "client", "client".toCharArray());
+                                  byte[] sign = getCertificateSignature(filepath + "client.jce", "oussama", "client");
+                                  
+                                  certif cer  = new certif(sign , encryptWithPrivateKey(jTextField1.getText().getBytes(), prk));
+                                  
+                                  Requete req = new Requete(Requete.certif, cer);
+                                  System.out.println("certif");
+                                  obj.writeObject(req);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -278,6 +356,10 @@ public class Client extends javax.swing.JFrame {
     private void AESActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_AESActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_AESActionPerformed
+
+    private void SHA1withRSAActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_SHA1withRSAActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_SHA1withRSAActionPerformed
 
     /**
      * @param args the command line arguments
@@ -320,13 +402,15 @@ public class Client extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JRadioButton AES;
+    private javax.swing.JRadioButton Certificat;
     private javax.swing.JRadioButton DES3;
+    private javax.swing.JRadioButton HMAC;
+    private javax.swing.JRadioButton SHA1;
+    private javax.swing.JRadioButton SHA1withRSA;
     private javax.swing.ButtonGroup buttonGroup1;
     private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
-    private javax.swing.JRadioButton jRadioButton3;
-    private javax.swing.JRadioButton jRadioButton4;
     private javax.swing.JTextField jTextField1;
     // End of variables declaration//GEN-END:variables
 }

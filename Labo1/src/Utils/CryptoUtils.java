@@ -28,6 +28,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import javax.crypto.Cipher;
 import javax.crypto.KeyAgreement;
+import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.DESedeKeySpec;
@@ -42,12 +43,12 @@ public class CryptoUtils {
 
     public static final String ALGORITHM = "DESede/ECB/PKCS5Padding";
     public static final String KEYDES3 = "0123456789abcdef0123456789abcdef0123456789abcdef";
+    public static final String Hkey = "123456789012345678901234";
 
-    
-     static {
+    static {
         Security.addProvider(new BouncyCastleProvider());
     }
-    
+
     public static byte[] encrypt(String message, String KEY, String ALGORITHM) throws Exception {
         KeySpec keySpec = new DESedeKeySpec(KEY.getBytes(StandardCharsets.UTF_8));
         SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DESede");
@@ -74,7 +75,6 @@ public class CryptoUtils {
     public static int GenerateKey(int alphaBeta1, int[] nq, float AB) {
         return (int) Math.pow(alphaBeta1, AB) % nq[0];
     }
-
 
     public static boolean verifySignature(byte[] signatureBytes, byte[] publicKeyBytes, byte[] dataToVerify) {
         try {
@@ -240,7 +240,7 @@ public class CryptoUtils {
     }
 
     public static KeyAgreement generateKeyAgreement(PrivateKey key) throws NoSuchAlgorithmException, InvalidKeyException {
-        
+
         KeyAgreement keyAgreement = KeyAgreement.getInstance("DH");
         keyAgreement.init(key);
         return keyAgreement;
@@ -255,7 +255,7 @@ public class CryptoUtils {
         // Création d'un objet SecretKey avec la clé secrète
         return new SecretKeySpec(sharedSecret, "AES");
     }
-    
+
     // Générer une paire de clés Diffie-Hellman
     public static KeyPair generateDHKeyPair() throws Exception {
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("DH");
@@ -303,6 +303,100 @@ public class CryptoUtils {
         }
         return data;
     }
-    
-   
+
+    public static String hash(String message) throws Exception {
+        // Créer une instance de MessageDigest avec l'algorithme SHA-1
+        MessageDigest md = MessageDigest.getInstance("SHA-1");
+        // Mettre à jour le digest avec les octets du message
+        md.update(message.getBytes());
+        // Calculer le hachage et le convertir en un tableau d'octets
+        byte[] hash = md.digest();
+        // Convertir le tableau d'octets en une chaîne hexadécimale
+        StringBuilder sb = new StringBuilder();
+        for (byte b : hash) {
+            sb.append(String.format("%02x", b));
+        }
+        // Retourner la chaîne hexadécimale
+        return sb.toString();
+    }
+
+    public static byte[] hmac_md5(String message, String key) throws NoSuchAlgorithmException, InvalidKeyException {
+
+        Mac mac = Mac.getInstance("HmacMD5");
+        SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(), "HmacMD5");
+        mac.init(secretKeySpec);
+        return mac.doFinal(message.getBytes());
+    }
+
+    public static byte[] crypt_messageHmac(String message, String key) throws Exception {
+        SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "TripleDES");
+        Cipher cipher = Cipher.getInstance("TripleDES");
+        cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
+        return cipher.doFinal(message.getBytes(StandardCharsets.UTF_8));
+
+    }
+
+    public static String decrypt_message(byte[] message, String key) throws Exception {
+        SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "TripleDES");
+        Cipher cipher = Cipher.getInstance("TripleDES");
+        cipher.init(Cipher.DECRYPT_MODE, secretKeySpec);
+        byte[] decrypted = cipher.doFinal(message);
+        return new String(decrypted, StandardCharsets.UTF_8);
+    }
+
+    public static byte[] sign_message(String message, PrivateKey privateKey) throws Exception {
+        Signature signature = Signature.getInstance("SHA1withRSA");
+        signature.initSign(privateKey);
+        signature.update(message.getBytes(StandardCharsets.UTF_8));
+        return signature.sign();
+
+    }
+
+    public static boolean verifySignature(String message, byte[] signatureBytes, byte[] publicKeyBytes) throws Exception {
+        // Créer une instance de X509EncodedKeySpec à partir du tableau de bytes de la clé publique
+        X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
+
+        // Créer une instance de KeyFactory pour l'algorithme de chiffrement que vous utilisez
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA"); // ou "EC" ou autre
+
+        // Générer une instance de PublicKey à partir de la clé publique
+        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+
+        // Créer une instance de Signature pour l'algorithme de chiffrement que vous utilisez
+        Signature signature = Signature.getInstance("SHA256withRSA"); // ou "SHA1withECDSA" ou autre
+
+        // Initialiser la signature avec la clé publique
+        signature.initVerify(publicKey);
+
+        // Mettre à jour la signature avec le message
+        signature.update(message.getBytes());
+
+        // Vérifier la signature avec la signature fournie
+        return signature.verify(signatureBytes);
+    }
+
+    public  PublicKey getPublicKeyFromCertificate(String keystorePath, String keystorePassword, String alias) throws Exception {
+        // Créer une instance de FileInputStream à partir du chemin de fichier de keystore
+        FileInputStream fileInputStream = new FileInputStream(keystorePath);
+
+        // Créer une instance de KeyStore pour le type de keystore que vous utilisez
+        KeyStore keystore = KeyStore.getInstance("JCEKS"); // ou "JKS" ou autre
+
+        // Charger le keystore à partir du FileInputStream et du mot de passe
+        keystore.load(fileInputStream, keystorePassword.toCharArray());
+
+        // Récupérer le certificat à partir de l'alias fourni
+        Certificate cert = keystore.getCertificate(alias);
+
+        // Vérifier que le certificat est de type X509Certificate
+        if (cert instanceof X509Certificate) {
+            // Récupérer la clé publique du certificat et la renvoyer sous forme de tableau de bytes
+            X509Certificate x509Cert = (X509Certificate) cert;
+            return x509Cert.getPublicKey();
+        }
+
+        // Si le certificat n'est pas de type X509Certificate, renvoyer null
+        return null;
+    }
+
 }
